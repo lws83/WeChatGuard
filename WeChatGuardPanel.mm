@@ -1,3 +1,4 @@
+
 #import "WeChatGuardPanel.h"
 #import "WeChatGuardPowerManager.h"
 
@@ -11,6 +12,7 @@
 @property (nonatomic, strong) UILabel *thermalLabel;
 @property (nonatomic, strong) UISwitch *powerSwitch;
 @property (nonatomic, assign) BOOL panelVisible;
+@property (nonatomic, assign) BOOL observersInstalled;
 
 @end
 
@@ -27,7 +29,26 @@
 
 + (void)install {
     dispatch_async(dispatch_get_main_queue(), ^{
-        [[self sharedPanel] installUI];
+        WeChatGuardPanel *panel = [self sharedPanel];
+
+        if (!panel.observersInstalled) {
+            NSNotificationCenter *center =
+                [NSNotificationCenter defaultCenter];
+
+            [center addObserver:panel
+                       selector:@selector(onSceneReady:)
+                           name:UISceneDidActivateNotification
+                         object:nil];
+
+            [center addObserver:panel
+                       selector:@selector(onSceneReady:)
+                           name:UIApplicationDidBecomeActiveNotification
+                         object:nil];
+
+            panel.observersInstalled = YES;
+        }
+
+        [panel installUI];
     });
 }
 
@@ -43,6 +64,16 @@
     });
 }
 
+- (void)onSceneReady:(NSNotification *)notification {
+    dispatch_async(dispatch_get_main_queue(), ^{
+        [self installUI];
+
+        if (self.panelVisible && self.panelWindow) {
+            self.cardView.hidden = NO;
+        }
+    });
+}
+
 - (void)installUI {
     if (self.panelWindow) return;
 
@@ -50,15 +81,20 @@
 
     for (UIScene *item in
          UIApplication.sharedApplication.connectedScenes) {
-        if (item.activationState ==
-            UISceneActivationStateForegroundActive &&
-            [item isKindOfClass:[UIWindowScene class]]) {
+        if ([item isKindOfClass:[UIWindowScene class]] &&
+            item.activationState ==
+            UISceneActivationStateForegroundActive) {
             scene = (UIWindowScene *)item;
             break;
         }
     }
 
-    if (!scene) return;
+    // 场景尚未激活时不退出整个安装流程，
+    // 后续由场景激活通知再次调用 installUI。
+    if (!scene) {
+        NSLog(@"[WeChatGuard] Waiting for active window scene");
+        return;
+    }
 
     self.panelWindow =
         [[UIWindow alloc] initWithWindowScene:scene];
@@ -85,14 +121,12 @@
 
     button.layer.cornerRadius = 26;
     button.layer.borderWidth = 1;
-    button.layer.borderColor =
-        UIColor.whiteColor.CGColor;
+    button.layer.borderColor = UIColor.whiteColor.CGColor;
 
     [button setTitle:@"WG" forState:UIControlStateNormal];
     [button setTitleColor:UIColor.whiteColor
                  forState:UIControlStateNormal];
-    button.titleLabel.font =
-        [UIFont boldSystemFontOfSize:16];
+    button.titleLabel.font = [UIFont boldSystemFontOfSize:16];
 
     [button addTarget:self
                action:@selector(togglePanel)
@@ -149,7 +183,7 @@
     UILabel *powerTitle = [[UILabel alloc]
                            initWithFrame:CGRectMake(18, 55, 180, 30)];
 
-    powerTitle.text = @"省电监测";
+    powerTitle.text = @"状态监测";
     powerTitle.textColor = UIColor.whiteColor;
     powerTitle.font = [UIFont systemFontOfSize:16];
     [card addSubview:powerTitle];
@@ -210,7 +244,7 @@
         [self installUI];
     }
 
-    if (!self.panelWindow) return;
+    if (!self.panelWindow || !self.cardView) return;
 
     self.panelVisible = YES;
     self.cardView.hidden = NO;
@@ -233,6 +267,7 @@
 
 - (void)dragButton:(UIPanGestureRecognizer *)gesture {
     UIView *view = gesture.view;
+    if (!view.superview) return;
 
     CGPoint offset = [gesture translationInView:view.superview];
 
