@@ -1,16 +1,15 @@
 #import <Foundation/Foundation.h>
 #import "WeChatGuardPowerManager.h"
-#import "WeChatGuardPanel.h"
 
 __attribute__((constructor))
 static void WeChatGuardPowerInitialize(void) {
     @autoreleasepool {
         dispatch_async(dispatch_get_main_queue(), ^{
-            [[WeChatGuardPowerManager sharedManager] start];
+            NSLog(@"[WeChatGuard] Diagnostic entry loaded");
 
-            [WeChatGuardPanel install];
-
-            NSLog(@"[WeChatGuard] Initialized successfully");
+            // 暂时不启动状态管理器
+            // 暂时不创建悬浮窗口
+            // 暂时不安装 WeChatGuardPanel
         });
     }
 }
