@@ -1,0 +1,56 @@
+name: WeChatGuard iOS Build
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build iOS library
+    runs-on: macos-15
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Check Xcode SDK
+        run: |
+          xcodebuild -version
+          xcrun --sdk iphoneos --show-sdk-version
+
+      - name: Compile WeChatGuard
+        run: |
+          set -euo pipefail
+
+          mkdir -p build
+
+          SDK=$(xcrun --sdk iphoneos --show-sdk-path)
+
+          xcrun --sdk iphoneos clang++ \
+            -std=c++17 \
+            -fobjc-arc \
+            -fmodules \
+            -isysroot "$SDK" \
+            -miphoneos-version-min=13.0 \
+            -arch arm64 \
+            -dynamiclib \
+            -framework Foundation \
+            -framework UIKit \
+            -install_name @rpath/libWeChatGuardPower.dylib \
+            WeChatGuardPowerManager.mm \
+            WeChatGuardPowerEntry.mm \
+            -o build/libWeChatGuardPower.dylib
+
+          file build/libWeChatGuardPower.dylib
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: WeChatGuard-iOS
+          path: build/libWeChatGuardPower.dylib
+          if-no-files-found: error
