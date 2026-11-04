@@ -241,7 +241,7 @@
         view.center.y + offset.y
     );
 
-    [gesture setTranslation:CGPointZero
+    [gesture setTranslation:CGPointMake(0, 0)
                    inView:view.superview];
 }
 
