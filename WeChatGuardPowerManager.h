@@ -17,7 +17,8 @@ NS_ASSUME_NONNULL_BEGIN
     BOOL inBackground;
 
 /// 当前是否开启系统低电量模式
-@property (nonatomic, assign, readonly, getter=isLowPowerMode;
+@property (nonatomic, assign, readonly, getter=isLowPowerMode)
+    BOOL lowPowerMode;
 
 /// 当前是否处于高热状态
 @property (nonatomic, assign, readonly, getter=isThermalLimited)
